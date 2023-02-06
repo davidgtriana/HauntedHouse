@@ -7,4 +7,4 @@ Blit3Dv3\Release\*
 Blit3Dv3\x64\*
 Blit3Dv3\*.log
 .vs\*
-editors\*
+editors/*
