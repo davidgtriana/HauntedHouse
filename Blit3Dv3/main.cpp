@@ -74,6 +74,8 @@ int main(int argc, char *argv[])
 {
 	//memory leak detection
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtSetBreakAlloc(616);
+
 
 	blit3D = new Blit3D(Blit3DWindowModel::DECORATEDWINDOW, 1280, 704);
 	game = new GameWindow();

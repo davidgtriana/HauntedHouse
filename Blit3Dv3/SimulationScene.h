@@ -9,13 +9,14 @@ class SimulationScene : public dago::Scene {
 
 public:	
 	TileMap* map;
+
 	GhostEntity* dago;
 
 	SimulationScene() {
 		entityManager = new dago::EntityManager();
 		dago = new GhostEntity(20.f,10.f);
 		map = new TileMap();
-		entityManager->AddEntity(dago);
+		entityManager->addEntity(dago);
 
 	}
 
@@ -40,10 +41,10 @@ public:
 	}
 
 	void dispose() {
-		entityManager->dispose();
-		if (entityManager) delete entityManager;
 		map->dispose();
 		if (map) delete map;
+		entityManager->dispose();
+		if (entityManager) delete entityManager;
 	}
 
 	void doCursor(double x, double y) {

@@ -108,63 +108,7 @@ namespace dago
 		virtual void doCursor(double x, double y) = 0;
 		virtual void doMouseButton(int button, int action, int mods) = 0;
 	};
-
-	// ======================= COMPONENTS ==================================
-	//	May have several components, and scenes are controlled by a EntityManager (which is the Scene itslef)
-	class Component {
-	public:
-
-	};
-
-
-	class Texture : public Component {
-	public:
-		Sprite* sprite;
-
-		Texture() {
-
-		}
-
-
-	};
-
-
-	class AnimatedTexture : public Component {
-	public:
-		int frameNumber = 0;
-		float timer = 0.f;
-		float angle = 0.f;
-		std::vector<Sprite*> sprites;
-
-		AnimatedTexture() {
-		
-		}
-
-
-	};
-
-
-	class Position : public Component {
-	public:
-		float x;
-		float y;
-
-		Position() {
-			x = 0;
-			y = 0;
-		}
-	};
-
-	class Velocity : public Component {
-	public:
-		float x;
-		float y;
-
-		Velocity() {
-			x = 0;
-			y = 0;
-		}
-	};
+	
 
 	class Rectangle {
 	public:
@@ -201,20 +145,24 @@ namespace dago
 	};
 
 	// ========================= ENTITIES ==================================
-	//	May have several components, and the EntityManager should control the entities and their components
+	//Every Scene may have several components, and the EntityManager should control the entities and their components
 
+	class EntityManager;
+	class Component;
 	class Entity : public GameAdapter{
-		
 	public:
-		std::unordered_map<std::type_index, dago::Component*> components;
-		std::string id = "default";
+		std::unordered_map<int, int> otherdummy;
+		EntityManager* parent = NULL;
+		std::unordered_map<std::type_index, Component*> components;
+		std::string id = "default_entity";
 
 
-		template <typename T> bool AddComponent(T* component) {
+		template <typename T> bool addComponent(T* component) {
 			if (this->components.count(typeid(T))) {
 				std::cout << "cant't add twice the same component "<< std::endl;
 				return false;
 			}
+			component->parent = this;
 			this->components[typeid(T)] = component;
 			return true;
 		}
@@ -224,11 +172,35 @@ namespace dago
 		}
 
 	};
+
+	class FSMComponent;
+	class State
+	{
+	public:
+		FSMComponent* parent = NULL; //who owns us
+
+		virtual void onEnter() = 0;
+		virtual void update() = 0;
+		virtual void onExit() = 0;
+	};
+
+	class Message
+	{
+	public:
+		std::string senderID;
+		std::string receiverID;
+		int message;
+		Message(std::string sender, std::string receiver, int theMessage) {
+
+		}
+	};
 	
+
 	class EntityManager : public GameAdapter {
 	public:
 		std::unordered_map<std::string, Entity*> entities;
 
+		std::vector<Message> messages;
 
 		EntityManager() {
 			
@@ -239,6 +211,55 @@ namespace dago
 				pair.second->init();
 		}
 		void update(double deltaTime) {
+			/*
+			//SEND ALL MESSAGES IN THE QUEUE
+
+			//loop backwards so we can add messages as we delete others without messing up our
+			//place in the list
+			for (int i = messageList.size() - 1; i >= 0; --i)
+			{
+				//is this a broadcast message?
+				if (messageList[i].receiverID == "BROADCAST")
+				{
+					//this is broadcast
+					//send message to every entity on the appropriate subscription list.
+					// EXCEPT the original sender (for now, this condition can be omitted if we wish 
+					//for different behaviour i.e. entities send themselves messages as part of their operational logic)
+
+					subsIter = subscriptionLists.find((messageList[i].message));
+					if (subsIter == subscriptionLists.end())
+					{
+						assert(false);
+					}
+					else
+					{
+
+						for (auto subscriber : subsIter->second)
+						{
+							if (subscriber != messageList[i].senderID)
+							{
+								//look up the entity by ID
+								it = entityMap.find(subscriber);
+								assert(it != entityMap.end());
+
+								//send this essage to this subscriber
+								it->second->ReceiveMessage(messageList[i]);
+							}
+						}
+					}
+				}
+				else
+				{
+					it = entityMap.find(messageList[i].receiverID);
+					assert(it != entityMap.end()); //could remove this for some applications, if sending to a non-existant entity is ok
+					if (it != entityMap.end())
+					{
+						it->second->ReceiveMessage(messageList[i]);
+					}
+				}
+
+				messageList.erase(messageList.begin() + i);
+			}*/
 			for (auto& pair : entities)
 				pair.second->update(deltaTime);
 		}
@@ -265,35 +286,168 @@ namespace dago
 			}	
 		}
 
-		void AddEntity(Entity* entity) {
+		void addEntity(Entity* entity) { //Registry Entity
+			entity->parent = this;
 			this->entities[entity->id] = entity;
+		}
+		void sendMessage(Message message) {
+			this->messages.push_back(message);
+		}
+
+		void subscribe(std::string subscriberID, int messageType) {
+			
 		}
 
 
 	};
 
+	// ======================= COMPONENTS ==================================
+	//	Every entity may have several components, and the components are managed by a every entity
+
+	class Component {
+	public:
+		Entity* parent = NULL;
+		virtual void dispose() = 0;
+	};
+
+
+	class Texture : public Component {
+	public:
+		Sprite* sprite;
+
+		Texture() {
+
+		}
+
+		void dispose() {
+
+		}
+
+	};
+
+
+	class AnimatedTexture : public Component {
+	public:
+		int frameNumber = 0;
+		float timer = 0.f;
+		float angle = 0.f;
+		std::vector<Sprite*>* sprites;
+
+		AnimatedTexture() {
+			sprites = new std::vector<Sprite*>();
+		}
+
+		void dispose() {
+			delete sprites;
+		}
+	};
+
+
+	class Position : public Component {
+	public:
+		float x;
+		float y;
+
+		Position() {
+			x = 0;
+			y = 0;
+		}
+
+		void dispose() {
+
+		}
+	};
+
+	class Velocity : public Component {
+	public:
+		float x;
+		float y;
+
+		Velocity() {
+			x = 0;
+			y = 0;
+		}
+
+		void dispose() {
+
+		}
+	};
+
+	class FSMComponent : public Component { // Finite States Machine
+	public:
+		Entity* parent = NULL;
+		State* currentState = NULL;
+		State* previousState = NULL;
+		std::unordered_map<std::type_index, State*>* states;
+		std::vector<Message>* messages;
+
+		FSMComponent(){
+			states = new std::unordered_map<std::type_index, State*>();
+			messages = new std::vector<Message>();
+		}
+
+		template <typename T> void changeState() {
+			this->previousState = this->currentState;
+			previousState->onExit();
+			this->currentState = getState<T>();
+			this->currentState->onEnter();
+		}
+		template <typename T> void changeToBlipState() {
+			this->previousState = this->currentState;
+			this->currentState = getState<T>();
+			this->currentState->onEnter();
+		}
+		void returnToPreviousState() {
+			this->currentState->onExit();
+			auto temp = this->currentState;
+			this->currentState = this->previousState;
+			this->previousState = temp;
+		}
+		template <typename T> bool addState(T* state) {
+			if (this->states->count(typeid(T))) {
+				std::cout << "cant't add twice the same state " << std::endl;
+				return false;
+			}
+			state->parent = this;
+			this->states->operator[](typeid(T)) = state;
+			return true;
+		}
+
+		template <typename T> T* getState() {
+			return (T*)this->states->operator[](typeid(T));
+		}
+
+		void sendMessage(Message message) {
+			this->parent->parent->sendMessage(message);
+		}
+		void receiveMessage(Message message) {
+
+		}
+		void setupSubscriptions() {
+			this->parent->parent->subscribe(this->parent->id, 0);
+		}
+		void print(std::string msg) {
+			std::cout << this->parent->id << ": " << msg << std::endl;
+		}
+
+		void dispose() {
+			for (auto& S : *states) delete S.second;
+			delete states;
+			delete messages;
+		}
+	};
+
 
 
 	// ============================ SCENE ==================================
-	//	May have several entities, and scenes are controlled by a EntityManager (which is the Scene itslef)
+	//	May have several entities, and scenes are controlled by a SceneManager
 	//	The scenes must know how to handle messages between entities
-	// Every Scene is an entity manager
 
 	
 
 	class Scene : public GameAdapter {
 	public:
 		EntityManager* entityManager;
-
-		/*
-		std::vector<dago::Message> messageList; //keeps track of all the mail
-
-		void FSM_SendMessage(FSM_Message message); //pass messages between entities
-		void RegisterEntity(FSM_Entity* entity); //how we add entities to our map of entities
-		void KillEntity(std::string ID); //removes an entity from the map and de-allocates it.
-		void Update(); //updates all entities
-		virtual ~FSM_EntityManager(); //frees all entities
-		*/
 
 	};
 
