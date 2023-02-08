@@ -35,7 +35,7 @@ namespace dago
 			std::random_device rd;
 			rng.seed(rd());
 		}
-
+		~DiceRoller() {}
 		void SeedRNG(unsigned int seedVal) {
 			rng.seed(seedVal);
 		}
@@ -104,7 +104,6 @@ namespace dago
 		virtual void update(double deltaTime) = 0;
 		virtual void draw() = 0;
 		virtual void doInput(int key, int scancode, int action, int mods) = 0;
-		virtual void dispose() = 0;
 		virtual void doCursor(double x, double y) = 0;
 		virtual void doMouseButton(int button, int action, int mods) = 0;
 	};
@@ -117,6 +116,7 @@ namespace dago
 		float w;
 		float h;
 
+		
 		Rectangle() {
 			this->x = 0;
 			this->y = 0;
@@ -138,6 +138,7 @@ namespace dago
 		Rectangle(Rectangle* rect) {
 			Rectangle(rect->x, rect->y, rect->w, rect->h);
 		}
+		~Rectangle() {}
 		/*
 		bool contains(float x, float y) {
 			return true;
@@ -151,11 +152,10 @@ namespace dago
 	class Component;
 	class Entity : public GameAdapter{
 	public:
-		std::unordered_map<int, int> otherdummy;
+		virtual ~Entity() {}
 		EntityManager* parent = NULL;
 		std::unordered_map<std::type_index, Component*> components;
 		std::string id = "default_entity";
-
 
 		template <typename T> bool addComponent(T* component) {
 			if (this->components.count(typeid(T))) {
@@ -182,6 +182,7 @@ namespace dago
 		virtual void onEnter() = 0;
 		virtual void update() = 0;
 		virtual void onExit() = 0;
+		virtual ~State() {}
 	};
 
 	class Message
@@ -193,6 +194,7 @@ namespace dago
 		Message(std::string sender, std::string receiver, int theMessage) {
 
 		}
+		~Message() {}
 	};
 	
 
@@ -205,6 +207,7 @@ namespace dago
 		EntityManager() {
 			
 		}
+
 
 		void init() {
 			for (auto& pair : entities)
@@ -279,11 +282,13 @@ namespace dago
 
 		}
 
-		void dispose() {
-			for (auto& pair : this->entities) {
-				pair.second->dispose();
+		~EntityManager() {
+			for (auto pair : this->entities) {
+				//pair.second->dispose();
+				std::cout << pair.second->id << std::endl;
 				delete pair.second;
-			}	
+			}
+			entities.clear();
 		}
 
 		void addEntity(Entity* entity) { //Registry Entity
@@ -307,7 +312,7 @@ namespace dago
 	class Component {
 	public:
 		Entity* parent = NULL;
-		virtual void dispose() = 0;
+		virtual ~Component() {}
 	};
 
 
@@ -319,7 +324,7 @@ namespace dago
 
 		}
 
-		void dispose() {
+		virtual ~Texture() {
 
 		}
 
@@ -331,15 +336,14 @@ namespace dago
 		int frameNumber = 0;
 		float timer = 0.f;
 		float angle = 0.f;
-		std::vector<Sprite*>* sprites;
+		std::vector<Sprite*> sprites;
 
 		AnimatedTexture() {
-			sprites = new std::vector<Sprite*>();
+			this->frameNumber = 0;
+			this->timer = 0;
+			this->angle = 0;
 		}
-
-		void dispose() {
-			delete sprites;
-		}
+		virtual ~AnimatedTexture() { }
 	};
 
 
@@ -349,13 +353,11 @@ namespace dago
 		float y;
 
 		Position() {
-			x = 0;
-			y = 0;
+			this->x = 0;
+			this->y = 0;
 		}
 
-		void dispose() {
-
-		}
+		virtual ~Position() { }
 	};
 
 	class Velocity : public Component {
@@ -368,7 +370,7 @@ namespace dago
 			y = 0;
 		}
 
-		void dispose() {
+		virtual ~Velocity() {
 
 		}
 	};
@@ -378,12 +380,12 @@ namespace dago
 		Entity* parent = NULL;
 		State* currentState = NULL;
 		State* previousState = NULL;
-		std::unordered_map<std::type_index, State*>* states;
-		std::vector<Message>* messages;
+		std::unordered_map<std::type_index, State*> states;
+		std::vector<Message> messages;
 
-		FSMComponent(){
-			states = new std::unordered_map<std::type_index, State*>();
-			messages = new std::vector<Message>();
+		FSMComponent(){ }
+		virtual ~FSMComponent() {
+			for (auto S : states) delete S.second;
 		}
 
 		template <typename T> void changeState() {
@@ -404,17 +406,17 @@ namespace dago
 			this->previousState = temp;
 		}
 		template <typename T> bool addState(T* state) {
-			if (this->states->count(typeid(T))) {
+			if (this->states.count(typeid(T))) {
 				std::cout << "cant't add twice the same state " << std::endl;
 				return false;
 			}
 			state->parent = this;
-			this->states->operator[](typeid(T)) = state;
+			this->states[typeid(T)] = state;
 			return true;
 		}
 
 		template <typename T> T* getState() {
-			return (T*)this->states->operator[](typeid(T));
+			return (T*)this->states[typeid(T)];
 		}
 
 		void sendMessage(Message message) {
@@ -429,12 +431,6 @@ namespace dago
 		void print(std::string msg) {
 			std::cout << this->parent->id << ": " << msg << std::endl;
 		}
-
-		void dispose() {
-			for (auto& S : *states) delete S.second;
-			delete states;
-			delete messages;
-		}
 	};
 
 
@@ -447,6 +443,7 @@ namespace dago
 
 	class Scene : public GameAdapter {
 	public:
+		virtual ~Scene() {}
 		EntityManager* entityManager;
 
 	};
@@ -455,30 +452,26 @@ namespace dago
 
 	public:
 
-		Scene* scene;
+		Scene* scene = NULL;
 
 		
 		SceneManager() {}
+		~SceneManager() {
+			if (scene)	delete scene;
+		}
 		void init() { scene->init(); }
 		void update(double deltaTime) { scene->update(deltaTime); }
 		void draw() { scene->draw(); }
-		void dispose() { scene->dispose(); delete scene; }
 		void doInput(int key, int scancode, int action, int mods) { scene->doInput(key, scancode, action, mods); }
 		void doCursor(double x, double y) { scene->doCursor(x, y); }
 		void doMouseButton(int button, int action, int mods) { scene->doMouseButton(button, action, mods); }
 		Scene* get() { return scene; }
 		void set(Scene* scn) {
-			if (!scene) dispose();
+			if (scene != NULL) delete scene;
 			scene = scn;
 			scene->init();
 		}
-
 	};
-
-
-	
-
-
 
 }
 

@@ -12,7 +12,6 @@
 
 #include "GameWindow.h"
 
-
 Blit3D *blit3D = NULL;
 GameWindow* game = NULL;
 
@@ -23,7 +22,6 @@ void Init()
 
 void DeInit(void)
 {
-	game->dispose();
 	if(game) delete game;
 }
 

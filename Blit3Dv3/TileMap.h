@@ -59,7 +59,14 @@ public:
 	TileMap() {
 		loadTileSheetIgnoreList();
 		loadTileSheet();
-		
+	}
+	~TileMap() {
+		std::cout << "hola ome" << std::endl;
+		for (auto tile : tiles) {
+			if (tile) {
+				delete tile;
+			}
+		}
 	}
 
 	void init() {
@@ -69,7 +76,6 @@ public:
 			for (currentColumn = 0; currentColumn < COLUMNS; currentColumn++)
 				tiles.push_back(new Tile());
 		load("house.txt");
-
 	}
 	void update(double deltaTime) {
 
@@ -97,9 +103,8 @@ public:
 	void doInput(int key, int scancode, int action, int mods) {
 
 	}
-	void dispose() {
-		for (auto tile : tiles) delete tile;
-	}
+
+
 	void doCursor(double x, double y) {
 
 	}

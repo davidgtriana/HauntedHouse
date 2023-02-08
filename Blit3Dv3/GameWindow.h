@@ -8,7 +8,9 @@ public:
     dago::SceneManager* sceneManager = new dago::SceneManager();
 
     GameWindow() {}
-
+    ~GameWindow() {
+        if (sceneManager) delete sceneManager;
+    }
     void init() {
         // beginning of the game
         sceneManager->set(new SimulationScene());
@@ -19,10 +21,6 @@ public:
     }
     void draw() { 
         sceneManager->draw();
-    }
-    void dispose() {
-        sceneManager->dispose();
-        if (sceneManager) delete sceneManager;
     }
     void doInput(int key, int scancode, int action, int mods) { 
         sceneManager->doInput(key, scancode, action, mods);

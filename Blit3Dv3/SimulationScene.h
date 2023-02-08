@@ -40,10 +40,8 @@ public:
 
 	}
 
-	void dispose() {
-		map->dispose();
+	virtual ~SimulationScene() {
 		if (map) delete map;
-		entityManager->dispose();
 		if (entityManager) delete entityManager;
 	}
 
