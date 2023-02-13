@@ -1,5 +1,5 @@
 #pragma once
-#include"Dago.h"
+#include"dago/Dago.h"
 
 #define T_BACKGROUND 0
 #define T_FORE1 1
@@ -8,7 +8,8 @@
 #define T_EMPTY 15
 
 
-struct Tile{
+class Tile{
+public:
 	int layers[4];
 
 	Tile() {
@@ -17,10 +18,10 @@ struct Tile{
 		this->layers[T_CHARACTER] = T_EMPTY;
 		this->layers[T_FORE2] = T_EMPTY;
 	}
-	Tile(int layer, int value) {
-		Tile();
+	Tile(int layer, int value) : Tile() {
 		this->layers[layer] = value;
 	}
+	~Tile() {}
 };
 
 class TileMap : public dago::GameAdapter{
@@ -61,12 +62,11 @@ public:
 		loadTileSheet();
 	}
 	~TileMap() {
-		std::cout << "hola ome" << std::endl;
-		for (auto tile : tiles) {
+		for (auto tile : tiles)
 			if (tile) {
 				delete tile;
+				tile = NULL;
 			}
-		}
 	}
 
 	void init() {
@@ -86,7 +86,7 @@ public:
 			for (currentColumn = 0; currentColumn < COLUMNS; currentColumn++) {
 				for (currentLayer = T_BACKGROUND; currentLayer <= T_FORE1; currentLayer++) {
 					id_tile = tiles[currentColumn + currentRow * COLUMNS]->layers[currentLayer];
-					tileSheet[id_tile]->Blit(currentColumn * TILE_SIZE + TILE_SIZE / 2, blit3D->screenHeight - (currentRow * TILE_SIZE + TILE_SIZE / 2));
+					tileSheet[id_tile]->Blit(getXTileMap(currentColumn), getYTileMap(currentRow));
 				}
 			}
 		}
@@ -96,20 +96,9 @@ public:
 		for (currentRow = 0; currentRow < ROWS; currentRow++) {
 			for (currentColumn = 0; currentColumn < COLUMNS; currentColumn++) {
 				id_tile = tiles[currentColumn + currentRow * COLUMNS]->layers[T_FORE2];
-				tileSheet[id_tile]->Blit(currentColumn * TILE_SIZE + TILE_SIZE / 2, blit3D->screenHeight - (currentRow * TILE_SIZE + TILE_SIZE / 2));
+				tileSheet[id_tile]->Blit(getXTileMap(currentColumn), getYTileMap(currentRow));
 			}
 		}
-	}
-	void doInput(int key, int scancode, int action, int mods) {
-
-	}
-
-
-	void doCursor(double x, double y) {
-
-	}
-	void doMouseButton(int button, int action, int mods) {
-
 	}
 
 	void loadTileSheetIgnoreList() {
@@ -131,7 +120,12 @@ public:
 			for (currentColumn = 0; currentColumn < TS_WIDTH / TILE_SIZE; currentColumn++) {
 				id_tile++;
 				if (isIgnored(id_tile)) continue;
-				tileSheet[id_tile] = blit3D->MakeSprite(currentColumn * TILE_SIZE, currentRow * TILE_SIZE, TILE_SIZE, TILE_SIZE, "Media\\interior.png");
+				tileSheet[id_tile] = blit3D->MakeSprite(
+					currentColumn * TILE_SIZE,
+					currentRow * TILE_SIZE,
+					TILE_SIZE,
+					TILE_SIZE,
+					"Media\\interior_dark.png");
 			}
 		}
 	}
@@ -147,7 +141,7 @@ public:
 		if (!fileRead) {
 			std::cout << "ERROR: It couldn't be opened" << std::endl;
 		}
-		int id_tile, currentRow, currentColumn;
+		int currentRow, currentColumn;
 		for (currentRow = 0; currentRow < ROWS; currentRow++)
 			for (currentColumn = 0; currentColumn < COLUMNS; currentColumn++)
 				fileRead >> tiles[currentColumn + currentRow * COLUMNS]->layers[T_BACKGROUND];
@@ -164,4 +158,10 @@ public:
 		fileRead.close();
 	}
 
+	static float getXTileMap(float const &x) {
+		return (x * TILE_SIZE) + (TILE_SIZE / 2);
+	}
+	static float getYTileMap(float const &y) {
+		return blit3D->screenHeight - (y * TILE_SIZE) - (TILE_SIZE / 2);
+	}
 };

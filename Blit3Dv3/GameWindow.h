@@ -1,5 +1,5 @@
 #pragma once
-#include"Dago.h"
+#include"dago/Dago.h"
 #include"SimulationScene.h"
 
 
@@ -9,7 +9,10 @@ public:
 
     GameWindow() {}
     ~GameWindow() {
-        if (sceneManager) delete sceneManager;
+        if (sceneManager) {
+            delete sceneManager;
+            sceneManager = NULL;
+        }
     }
     void init() {
         // beginning of the game

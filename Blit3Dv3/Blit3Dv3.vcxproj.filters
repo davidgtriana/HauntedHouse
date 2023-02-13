@@ -25,6 +25,9 @@
     <Filter Include="Source Files\Blit3D basefiles\GLEW">
       <UniqueIdentifier>{71c06ed4-5318-45c3-a478-e0bb26d36907}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\dago">
+      <UniqueIdentifier>{24a91e21-4965-4030-bfe7-5403836c637a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Blit3DBaseFiles\GLFW\context.c">
@@ -125,10 +128,16 @@
     <ClInclude Include="TileMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Dago.h">
+    <ClInclude Include="GhostEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GhostEntity.h">
+    <ClInclude Include="dago\Dago.h">
+      <Filter>Header Files\dago</Filter>
+    </ClInclude>
+    <ClInclude Include="dago\FSMComponent.h">
+      <Filter>Header Files\dago</Filter>
+    </ClInclude>
+    <ClInclude Include="NPCEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

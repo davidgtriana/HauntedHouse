@@ -185,11 +185,13 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dago\Dago.h" />
+    <ClInclude Include="dago\FSMComponent.h" />
     <ClInclude Include="GameWindow.h" />
     <ClInclude Include="Blit3DBaseFiles\GLEW\GL\glew.h" />
     <ClInclude Include="Blit3DBaseFiles\GLEW\GL\wglew.h" />
-    <ClInclude Include="Dago.h" />
     <ClInclude Include="GhostEntity.h" />
+    <ClInclude Include="NPCEntity.h" />
     <ClInclude Include="SimulationScene.h" />
     <ClInclude Include="TileMap.h" />
   </ItemGroup>

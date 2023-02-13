@@ -13,16 +13,27 @@
 #include "GameWindow.h"
 
 Blit3D *blit3D = NULL;
+dago::DiceRoller* dice = NULL;
 GameWindow* game = NULL;
 
 void Init()
 {
+	dice = new dago::DiceRoller(10);
+	std::cout << "Seed: " << dice->getSeed() << std::endl;
 	game->init();
 }
 
 void DeInit(void)
 {
-	if(game) delete game;
+	if (game) {
+		delete game;
+		game = NULL;
+	}
+	if (dice) {
+		delete dice;
+		dice = NULL;
+	}
+
 }
 
 void Update(double deltaTime)
