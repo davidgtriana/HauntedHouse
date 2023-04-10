@@ -11,6 +11,7 @@
 class Tile{
 public:
 	int layers[4];
+	bool collide = false;
 
 	Tile() {
 		this->layers[T_BACKGROUND] = 48;
@@ -28,8 +29,8 @@ class TileMap : public dago::GameAdapter{
 public:
 
 	// WHOLE MAP SIZE
-	int ROWS = 22; // HEIGHT
-	int COLUMNS = 40; // WIDTH
+	static const int ROWS = 22; // HEIGHT
+	static const int COLUMNS = 40; // WIDTH
 
 	// CURRENT MAP CANVAS SIZE
 	int MAX_ROWS = 20;
@@ -155,7 +156,19 @@ public:
 		for (currentRow = 0; currentRow < ROWS; currentRow++)
 			for (currentColumn = 0; currentColumn < COLUMNS; currentColumn++)
 				fileRead >> tiles[currentColumn + currentRow * COLUMNS]->layers[T_FORE2];
+
+		fileRead >> number;//go to the collision layer
+		for (currentRow = 0; currentRow < ROWS; currentRow++)
+			for (currentColumn = 0; currentColumn < COLUMNS; currentColumn++)
+				fileRead >> tiles[currentColumn + currentRow * COLUMNS]->collide;
 		fileRead.close();
+	}
+
+	std::vector<bool> getCollisionMap() {
+		std::vector<bool> map; 
+		for (int currentTile = 0; currentTile < this->tiles.size(); currentTile++)
+			map.push_back(tiles[currentTile]->collide);
+		return map;
 	}
 
 	static float getXTileMap(float const &x) {

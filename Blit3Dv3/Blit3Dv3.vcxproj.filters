@@ -140,5 +140,8 @@
     <ClInclude Include="NPCEntity.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dago\PathfindComponent.h">
+      <Filter>Header Files\dago</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

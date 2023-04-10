@@ -187,6 +187,7 @@
   <ItemGroup>
     <ClInclude Include="dago\Dago.h" />
     <ClInclude Include="dago\FSMComponent.h" />
+    <ClInclude Include="dago\PathfindComponent.h" />
     <ClInclude Include="GameWindow.h" />
     <ClInclude Include="Blit3DBaseFiles\GLEW\GL\glew.h" />
     <ClInclude Include="Blit3DBaseFiles\GLEW\GL\wglew.h" />

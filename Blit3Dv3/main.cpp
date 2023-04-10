@@ -18,7 +18,7 @@ GameWindow* game = NULL;
 
 void Init()
 {
-	dice = new dago::DiceRoller(10);
+	dice = new dago::DiceRoller();
 	std::cout << "Seed: " << dice->getSeed() << std::endl;
 	game->init();
 }
@@ -57,9 +57,6 @@ void DoInput(int key, int scancode, int action, int mods)
 
 	game->doInput(key, scancode, action, mods);
 }
-
-
-
 
 void DoResize(int width, int height)
 {

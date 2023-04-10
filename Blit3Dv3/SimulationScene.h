@@ -2,7 +2,7 @@
 #include "TileMap.h"
 #include "dago/Dago.h"
 #include "GhostEntity.h"
-#include "NPCEntity.h"
+//#include "NPCEntity.h" // The NPC behaviour hasn't been updated - it would have errors if uncomment it
 
 
 class SimulationScene : public dago::Scene {
@@ -10,17 +10,17 @@ class SimulationScene : public dago::Scene {
 public:	
 	TileMap* map;
 	std::vector<dago::Entity*> ghosts;
-	dago::Entity* dago;
+	//dago::Entity* dago;
 
 	SimulationScene() {
 		map = new TileMap();
 		entityManager = new dago::EntityManager();
 
-		dago = new NPCEntity("Dago", rlutil::WHITE, 31.0f, 21.f);
-		for(int i = 0; i < 2; i++)
+		//dago = new NPCEntity("Dago", rlutil::WHITE, 31.0f, 21.f);
+		for(int i = 0; i < 9; i++)
 			ghosts.push_back(new GhostEntity("random"));
 		
-		entityManager->addEntity(dago);
+		//entityManager->addEntity(dago);
 		entityManager->addEntity(ghosts);
 
 	}
@@ -37,7 +37,9 @@ public:
 
 	void init() {
 		map->init();
+		entityManager->updateCollisionMap(map->getCollisionMap());
 		entityManager->init();
+		
 	}
 
 	void update(double deltaTime) {

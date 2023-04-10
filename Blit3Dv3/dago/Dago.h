@@ -186,116 +186,6 @@ namespace dago
 		virtual ~Component() {}
 	};
 
-
-	class Texture : public Component {
-	public:
-		Sprite* sprite = NULL;
-
-		Texture() {}
-
-		~Texture() {}
-
-	};
-
-
-	class AnimatedTexture : public Component {
-	public:
-		int frameNumber = 0;
-		float timer = 0.f;
-		float angle = 0.f;
-		std::vector<Sprite*> sprites;
-		float alpha = 1.0f;
-		bool active = true;
-
-		AnimatedTexture() {	}
-		~AnimatedTexture() { }
-	};
-
-
-	class Position : public Component {
-	public:
-		float x;
-		float y;
-
-		Position() : Position(0, 0) {}
-		Position(float x, float y) {
-			this->x = x;
-			this->y = y;
-		}
-		~Position() { }
-
-		void set(float x, float y) {
-			this->x = x;
-			this->y = y;
-		}
-	};
-
-
-	/**
-	* This class called Floater, is a subclass of the Component class and is used
-	* to calculate and update the position of an object. It has various attributes that represen
-	* the parameters of a mathematical equation that determines the offset of the position
-	* of the object being updated. The position of the object is stored in the 'offset' object
-	* which is an instance of the Position class. The Floater class contains methods that
-	* update the position of the object and set the parameters used in the mathematical equation.
-	* The update method calculates the angle of the object and updates the x and y position
-	* of the object based on the mathematical equation using the sin and cos functions in the
-	* glm library. The setParametersX and setParametersY methods allow the parameters of the
-	* mathematical equation to be set. The Floater class also has a destructor method that properly
-	* deallocates memory and nullifies the 'offset' object when the instance of the Floater
-	* class is destroyed.
-	*/
-	class Floater : public Component {
-	public:
-		Position* offset;
-		bool active = false;
-		float angle = 0;
-		float Ax1 = 0.0f; //xScale1
-		float Ax2 = 0.0f; //xScale2
-		float Bx1 = 0.0f; //xSpeed1
-		float Bx2 = 0.0f; //xSpeed2
-
-		float Ay1 = 0.0f; //yScale1
-		float Ay2 = 0.0f; //yScale2
-		float By1 = 0.0f; //ySpeed1
-		float By2 = 0.0f; //ySpeed2
-
-		Floater() {
-			this->offset = new Position();
-		}
-		~Floater() {
-			if (offset) {
-				delete offset;
-				offset = NULL;
-			}
-		}
-
-		void update(double deltaTime) {
-			if (!active) return;
-			angle += deltaTime;
-			if (angle >= 360) angle -= 360;
-
-			// Mathematical Function https://bit.ly/3DXNLOc
-			// A -> Amplitude
-			// B -> Period
-			// Offset = A1 + trig (B1 * theta) + A2 + trig (B2 * theta)
-			this->offset->x = Ax1 * cos(glm::radians(Bx1 * angle)) + Ax2 * cos(glm::radians(Bx2 * angle));
-			this->offset->y = Ay1 * sin(glm::radians(By1 * angle)) + Ay2 * sin(glm::radians(By2 * angle));
-		}
-		void setParametersX(float A1, float B1, float A2, float B2) {
-			this->Ax1 = A1;
-			this->Bx1 = B1;
-			this->Ax2 = A2;
-			this->Bx2 = B2;
-		}
-		void setParametersY(float A1, float B1, float A2, float B2) {
-			this->Ay1 = A1;
-			this->By1 = B1;
-			this->Ay2 = A2;
-			this->By2 = B2;
-		}
-	};
-
 	class Messager : public Component {
 	public:
 		std::vector<Message*> inbox;
@@ -317,6 +207,7 @@ namespace dago
 			inbox.push_back(message);
 		}
 	};
+
 
 
 	// ========================= ENTITIES ==================================
@@ -355,9 +246,10 @@ namespace dago
 		std::unordered_map<std::string, Entity*> entities;
 		std::unordered_map<std::string, std::vector<std::string> > suscriptions;
 		std::vector<Message*> messages;
+		std::vector<bool> collisionMap;
+		
 
 		EntityManager() {
-			
 		}
 		~EntityManager() {
 			for (auto& pair : this->entities) 
@@ -397,6 +289,10 @@ namespace dago
 
 		void subscribe(std::string subscriberID, int messageType) {
 			
+		}
+
+		void updateCollisionMap(std::vector<bool> map) {
+			this->collisionMap = map;
 		}
 
 
@@ -446,6 +342,8 @@ namespace dago
 						pair.second->getComponent<Messager>()->receiveMessage(copy);
 						print(pair.second->id + " has received the message");
 					}
+					messages.pop_back();
+					delete msg;
 				}
 
 				else {
@@ -473,12 +371,174 @@ namespace dago
 					messages.pop_back();
 				}
 			}
-
 			this->messages.clear();
+		}
+	};
 
+
+	// Other Components
+	class Texture : public Component {
+	public:
+		Sprite* sprite = NULL;
+
+		Texture() {}
+
+		~Texture() {}
+
+	};
+
+
+	class AnimatedTexture : public Component {
+	public:
+		std::vector<Sprite*> sprites;
+		int currentFrame = 0;
+		int frameAmount = 0;
+		float deltaFrame = 0.0f;
+		float timer = 0.f;
+		float angle = 0.f;
+		float alpha = 1.0f;
+		bool visible = true;
+
+		AnimatedTexture() {	}
+		~AnimatedTexture() { }
+		void update(double deltaTime) {
+			this->timer += (float)deltaTime;
+			if (this->timer >= 2.f / 20.f) {
+				this->currentFrame++;
+				if (this->currentFrame == this->frameAmount) {
+					this->currentFrame = 0;
+				}
+				this->timer -= this->deltaFrame / 20.f;
+			}
+		}
+
+		void getTexture(std::string path, int w, int h) {
+			for (int currentColumn = 0; currentColumn < this->frameAmount; currentColumn++)
+				this->sprites.push_back(blit3D->MakeSprite(
+					currentColumn * w,
+					0 * h,
+					w, h,
+					path));
+		}
+		void draw(float x, float y) {
+			if (visible) this->sprites[this->currentFrame]->Blit(x, y);
+		}
+	};
+	class Velocity : public Component {
+	public:
+		float magnitude = 0.6f;
+		glm::vec2 velocity = glm::vec2(0,0);
+
+		Velocity() : Velocity(0, 0) {}
+		Velocity(float x, float y) {
+			this->velocity.x = x;
+			this->velocity.y = y;
+		}
+		~Velocity() { }
+
+		void set(float x, float y) {
+			this->velocity.x = x * this->magnitude;
+			this->velocity.y = y * this->magnitude;
+		}
+		void set(glm::vec2 vector) {
+			set(vector.x,vector.y);
+		}
+		glm::vec2 get() {
+			return this->velocity;
+		}
+	};
+
+	class Position : public Component {
+	public:
+		glm::vec2 position = glm::vec2(0, 0);
+
+		Position() : Position(0, 0) {}
+		Position(glm::vec2 vector) : Position(vector.x, vector.y) {}
+		Position(float x, float y) {
+			this->position.x = x;
+			this->position.y = y;
+		}
+		~Position() { }
+
+		void set(float x, float y) {
+			this->position.x = x;
+			this->position.y = y;
+		}
+		void set(glm::vec2 vector) {
+			set(vector.x, vector.y);
+		}
+		glm::vec2 get() {
+			return this->position;
+		}
+		void update(double deltaTime) {
+			// This will throw an error if the entity doesn't have a velocity
+			auto velocity = this->parent->getComponent<Velocity>()->get();
+			this->position += velocity * (float)deltaTime;
 		}
 
 	};
+
+
+	/**
+	* This class called Floater, is a subclass of the Component class and is used
+	* to calculate and update the position of an object. It has various attributes that represen
+	* the parameters of a mathematical equation that determines the offset of the position
+	* of the object being updated. The position of the object is stored in the 'offset' object
+	* which is an instance of the Position class. The Floater class contains methods that
+	* update the position of the object and set the parameters used in the mathematical equation.
+	* The update method calculates the angle of the object and updates the x and y position
+	* of the object based on the mathematical equation using the sin and cos functions in the
+	* glm library. The setParametersX and setParametersY methods allow the parameters of the
+	* mathematical equation to be set. The Floater class also has a destructor method that properly
+	* deallocates memory and nullifies the 'offset' object when the instance of the Floater
+	* class is destroyed.
+	*/
+	class Floater : public Component {
+	public:
+		glm::vec2 offset;
+		bool active = false;
+		float angle = 0;
+		float Ax1 = 0.0f; //xScale1
+		float Ax2 = 0.0f; //xScale2
+		float Bx1 = 0.0f; //xSpeed1
+		float Bx2 = 0.0f; //xSpeed2
+
+		float Ay1 = 0.0f; //yScale1
+		float Ay2 = 0.0f; //yScale2
+		float By1 = 0.0f; //ySpeed1
+		float By2 = 0.0f; //ySpeed2
+
+		Floater() {
+			this->offset = glm::vec2(0, 0);
+		}
+		~Floater() {}
+
+		void update(double deltaTime) {
+			if (!active) return;
+			angle += deltaTime;
+			if (angle >= 360) angle -= 360;
+
+			// Mathematical Function https://bit.ly/3DXNLOc
+			// A -> Amplitude
+			// B -> Period
+			// Offset = A1 + trig (B1 * theta) + A2 + trig (B2 * theta)
+			this->offset.x = Ax1 * cos(glm::radians(Bx1 * angle)) + Ax2 * cos(glm::radians(Bx2 * angle));
+			this->offset.y = Ay1 * sin(glm::radians(By1 * angle)) + Ay2 * sin(glm::radians(By2 * angle));
+		}
+		void setParametersX(float A1, float B1, float A2, float B2) {
+			this->Ax1 = A1;
+			this->Bx1 = B1;
+			this->Ax2 = A2;
+			this->Bx2 = B2;
+		}
+		void setParametersY(float A1, float B1, float A2, float B2) {
+			this->Ay1 = A1;
+			this->By1 = B1;
+			this->Ay2 = A2;
+			this->By2 = B2;
+		}
+	};
+
 
 
 	// ============================ SCENE ==================================

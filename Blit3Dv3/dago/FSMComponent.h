@@ -35,7 +35,6 @@ namespace dago
 
 	class FSMComponent : public Component { // Finite States Machine
 	public:
-		Entity* parent = NULL;
 		FSMState* currentState = NULL;
 		FSMState* previousState = NULL;
 		std::unordered_map<std::type_index, FSMState*> states;
@@ -87,7 +86,6 @@ namespace dago
 				if (pair.second->id == id)
 					return pair.second;
 		}
-
 
 		int getStatesSize() {
 			return this->states.size();

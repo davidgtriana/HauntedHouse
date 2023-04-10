@@ -1,6 +1,7 @@
 #pragma once
 #include "dago/Dago.h"
 #include "dago/FSMComponent.h"
+#include "dago/PathfindComponent.h"
 #include "MarkovChain.h"
 
 extern dago::DiceRoller* dice;
@@ -8,6 +9,7 @@ extern dago::DiceRoller* dice;
 class GhostAttributes : public dago::Component {
 public:
 	int patience = 1;
+	int maxPatience = dice->RollIN(3, 8);
 	int alert = 1;
 	GhostAttributes() {}
 	~GhostAttributes() {}
@@ -15,7 +17,6 @@ public:
 
 class BubbleText : public dago::AnimatedTexture {
 public:
-	bool visible = false;
 	BubbleText() {}
 	~BubbleText() {}
 };
@@ -24,7 +25,7 @@ public:
 class GhostWanderingState;
 class GhostThinkingState;
 class GhostAlertState;
-
+glm::vec2 getRandomPosition();
 
 class GhostThinkingState : public dago::FSMState {
 public:
@@ -48,8 +49,9 @@ public:
 		auto ghost = this->parent->parent->getComponent<GhostAttributes>();
 
 		ghost->patience++;
-		if (ghost->patience > 5)
+		if (ghost->patience > ghost->maxPatience)
 		{
+			ghost->patience = 0;
 			changeState<GhostWanderingState>();
 			return;
 		}
@@ -79,6 +81,7 @@ public:
 	}
 	void update() {
 		this->parent->returnToPreviousState();
+
 	}
 
 	void onExit() {
@@ -100,14 +103,15 @@ public:
 
 class GhostWanderingState : public dago::FSMState {
 public:
+	glm::vec2 goal;
 	GhostWanderingState() {}
 
 	void onEnter() {
 		this->parent->print("I think I'm going to wander somewhere else");
+		this->parent->parent->getComponent<BubbleText>()->visible = false;
 		this->parent->parent->getComponent<dago::Floater>()->active = true;
-		this->parent->parent->getComponent<dago::Position>()->set(
-			dice->RollFN(6.0f,18.0f),
-			dice->RollFN(6.0f, 11.0f));
+		this->goal = getRandomPosition();
+		this->parent->parent->getComponent<dago::AStarComponent>()->end = glm::vec2(this->goal);
 	}
 	void update() {
 		this->parent->print("*Floating* *Floating*");
@@ -120,8 +124,7 @@ public:
 			return;
 		}
 		auto ghost = this->parent->parent->getComponent<GhostAttributes>();
-		ghost->patience = dice->RollIN(1, 5);
-		if (ghost->patience == 1){
+		if (this->parent->parent->getComponent<dago::Position>()->get() == this->goal) {
 			changeState<GhostThinkingState>();
 			return;
 		}
@@ -137,12 +140,11 @@ public:
 
 class GhostEntity : public dago::Entity {
 public:
-	GhostEntity(std::string name) : GhostEntity(name, 0, 10.0f, 10.0f) {}
-	GhostEntity(float x, float y) : GhostEntity("_default_", 0, x, y) {}
-	GhostEntity(std::string name, float x, float y) : GhostEntity(name, 0, x, y) {}
-	GhostEntity(std::string name, int colorText, float x, float y) {
+	GhostEntity(std::string name) : GhostEntity(name, 0, getRandomPosition()) {}
+	GhostEntity(glm::vec2 vector) : GhostEntity("_default_", 0, vector) {}
+	GhostEntity(std::string name, glm::vec2 vector) : GhostEntity(name, 0, vector) {}
+	GhostEntity(std::string name, int colorText, glm::vec2 position) {
 		this->id = "Ghost";
-
 		this->name = name;
 		if (this->name == "random") {
 			MarkovChain markov;
@@ -151,7 +153,9 @@ public:
 		}
 
 		this->addComponent<GhostAttributes>(new GhostAttributes());
-		this->addComponent<dago::Position>(new dago::Position(dice->RollIN(30, 34), dice->RollIN(4, 8)));
+		this->addComponent<dago::Position>(new dago::Position(position));
+		this->addComponent<dago::Velocity>(new dago::Velocity(0,0));
+		this->addComponent<dago::AStarComponent>(new dago::AStarComponent());
 		this->addComponent<dago::Floater>(new dago::Floater());
 		this->addComponent<dago::FSMComponent>(new dago::FSMComponent());
 		this->addComponent<dago::AnimatedTexture>(new dago::AnimatedTexture());
@@ -178,7 +182,8 @@ public:
 		fsm->addState<GhostThinkingState>(new GhostThinkingState());
 		fsm->addState<GhostWanderingState>(new GhostWanderingState());
 		fsm->addState<GhostAlertState>(new GhostAlertState());
-		fsm->setState(fsm->getStateById(dice->RollIN(fsm->getStatesSize()-1)));
+		fsm->setState(fsm->getStateById(0));
+		//fsm->setState(fsm->getStateById(dice->RollIN(fsm->getStatesSize()-1)));
 
 		
 	}
@@ -194,64 +199,72 @@ public:
 	void init() {
 		auto ts = TileMap::TILE_SIZE;
 		auto anim = this->getComponent<dago::AnimatedTexture>();
-		for (int currentColumn = 0; currentColumn < 6; currentColumn++)
-			anim->sprites.push_back(blit3D->MakeSprite(
-				currentColumn * ts,
-				0 * ts,
-				ts, ts,
-				"Media\\ghost_idle.png"));
+		anim->frameAmount = 6;
+		anim->deltaFrame = 4.0f;
+		anim->getTexture("Media\\ghost_idle.png", ts,ts);
 
-		auto bubbleAnim = this->getComponent<BubbleText>();
-		for (int currentColumn = 0; currentColumn < 4; currentColumn++)
-			bubbleAnim->sprites.push_back(blit3D->MakeSprite(
-				currentColumn * 40,
-				0,
-				40, 25,
-				"Media\\text_balloon.png"));
+		anim = this->getComponent<BubbleText>();
+		anim->frameAmount = 4;
+		anim->deltaFrame = 3.0f;
+		anim->getTexture("Media\\text_balloon.png", 40, 25);
+
+		this->getComponent<dago::AStarComponent>()->init();
 	}
 
 	void update(double deltaTime) {
-		// Updating Animation Component
-		auto anim = this->getComponent<dago::AnimatedTexture>();
-		anim->timer += (float)deltaTime;
-		if (anim->timer >= 2.f / 20.f){
-			anim->frameNumber++;
-			if (anim->frameNumber > 5) {
-				anim->frameNumber = 0;
-			}
-			anim->timer -= 4.f / 20.f;
-		}
-		auto bubbleAnim = this->getComponent<BubbleText>();
-		bubbleAnim->timer += (float)deltaTime;
-		if (bubbleAnim->timer >= 2.f / 20.f) {
-			bubbleAnim->frameNumber++;
-			if (bubbleAnim->frameNumber > 3) {
-				bubbleAnim->frameNumber = 0;
-			}
-			bubbleAnim->timer -= 3.f / 20.f;
-		}
-
 		// Updating FSM Component
 		this->getComponent<dago::FSMComponent>()->update(deltaTime);
+
+		// Updating Position
+		this->getComponent<dago::AStarComponent>()->update(deltaTime);
+		this->getComponent<dago::Position>()->update(deltaTime);
+
+
+		// Updating Animation Component
+		this->getComponent<dago::AnimatedTexture>()->update(deltaTime);
+		this->getComponent<BubbleText>()->update(deltaTime);
 		this->getComponent<dago::Floater>()->update(deltaTime);
 	}
 
 	void draw() {
-		auto position = this->getComponent<dago::Position>();
-		auto floater = this->getComponent<dago::Floater>()->offset;
-		auto anim = this->getComponent<dago::AnimatedTexture>();
-		float x = position->x + floater->x;
-		float y = position->y + floater->y;
-		for (Sprite* sprite : anim->sprites)
-			sprite->alpha = anim->alpha;
-		anim->sprites[anim->frameNumber]->Blit(TileMap::getXTileMap(x), TileMap::getYTileMap(y));
-		auto bubbleAnim = this->getComponent<BubbleText>();
-		if (bubbleAnim->visible) {
-			bubbleAnim->sprites[bubbleAnim->frameNumber]->Blit(TileMap::getXTileMap(x + 0.7), TileMap::getYTileMap(y - 0.7));
-		}
+		auto position = this->getComponent<dago::Position>()->get() + this->getComponent<dago::Floater>()->offset;
+		this->getComponent<dago::AnimatedTexture>()->draw(TileMap::getXTileMap(position.x), TileMap::getYTileMap(position.y));
+		this->getComponent<BubbleText>()->draw(TileMap::getXTileMap(position.x + 0.7), TileMap::getYTileMap(position.y - 0.7));
 	}
 };
 
+glm::vec2 getRandomPosition() {
+	glm::vec2 position = glm::vec2(0, 0);
+	int room = dice->RollIN(5);
+	switch (room) {
+		// Room
+	case 0:
+		position.x = dice->RollIN(6, 18);
+		position.y = dice->RollIN(6, 11);
+		break;
+		// Study Room
+	case 1:
+		position.x = dice->RollIN(30, 34);
+		position.y = dice->RollIN(4, 8);
+		break;
+		// Hall
+	case 2:
+		position.x = dice->RollIN(20, 34);
+		position.y = dice->RollIN(8, 11);
+		break;
+		// Kitchen
+	case 3:
+		position.x = dice->RollIN(8, 16);
+		position.y = dice->RollIN(16, 21);
+		break;
+		// Living Room
+	case 4:
+		position.x = dice->RollIN(18, 34);
+		position.y = dice->RollIN(15, 20);
+		break;
+	}
+	return position;
+}
 
 
 
